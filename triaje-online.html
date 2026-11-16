@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triaje · Rueda de asignación</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#14213d;--mute:#6b7488;--line:#e3e6ec;--accent:#1f4fd8;
+--cr:#d62839;--am:#e9a800;--ve:#2a9d5c;--bad:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171e2e;--ink:#eef1f7;--mute:#97a1b8;--line:#27304a;--accent:#6c8cff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:12px;max-width:760px;margin-inline:auto}
+h1{font-size:18px;margin:4px 0 2px}
+.sub{color:var(--mute);font-size:13px;margin-bottom:12px}
+.seg{display:flex;background:var(--line);border-radius:12px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;color:var(--mute);padding:10px;border-radius:9px;font:600 15px inherit;font-family:inherit}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px #0002}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.lv{border-left:6px solid var(--c)}
+.lv h2{margin:0;font-size:14px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.next{font-size:44px;font-weight:800;line-height:1.1;margin:6px 0 2px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--c);color:#fff;vertical-align:middle;margin-left:6px}
+.queue{color:var(--mute);font-size:14px;margin-bottom:10px}
+.btn{width:100%;border:0;border-radius:12px;padding:15px;font:700 17px inherit;font-family:inherit;background:var(--c);color:#fff;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 12px;font:600 14px inherit;font-family:inherit;cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{border:1px solid var(--line);border-radius:10px;padding:7px 10px;font:600 14px inherit;font-family:inherit;background:var(--card);color:var(--ink);cursor:pointer}
+.chip.off{opacity:.45;text-decoration:line-through}
+.chip small{color:var(--mute);font-weight:500;margin-left:4px}
+select{font:inherit;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.ref{border-left:6px solid var(--cr)}
+.ref.active{background:color-mix(in srgb,var(--cr) 8%,var(--card))}
+.log{list-style:none;margin:0;padding:0}
+.log li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.log li:first-child{border-top:0}
+.log b{font-weight:700}
+.mute{color:var(--mute);font-size:13px}
+.err{color:var(--bad);font-weight:600;font-size:14px;min-height:20px}
+details summary{cursor:pointer;font-weight:700}
+
+.banner{border-radius:14px;padding:12px 14px;margin-bottom:12px;font-weight:700;background:color-mix(in srgb,var(--ve) 15%,var(--card));border:1px solid var(--ve)}
+.banner.warn{background:color-mix(in srgb,var(--am) 20%,var(--card));border-color:var(--am)}
+.banner big{display:block;font-size:26px}
+.st{font-size:12px;color:var(--mute);float:right;margin-top:6px}
+.st i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ve);margin-right:4px}
+.st.off i{background:var(--bad)}
+.btn[disabled]{opacity:.5}
+input.code{font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%;margin:10px 0}
+</style>
+</head>
+<body>
+<span class="st" id="st"><i></i><span>conectando…</span></span>
+<h1>Triaje · Rueda de asignación</h1>
+<div class="sub">Los dos puestos comparten el mismo turno en tiempo real.</div>
+
+<div id="login" class="card" hidden>
+  <b>Código de acceso</b>
+  <div class="mute">Pídelo al responsable. Se guarda en este dispositivo.</div>
+  <input class="code" id="code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Código">
+  <button class="btn" id="enter" style="--c:var(--accent)">Entrar</button>
+  <div class="err" id="loginerr" style="margin-top:8px"></div>
+</div>
+
+<div id="app" hidden>
+<div class="seg" id="seg">
+  <button data-st="1" class="on">Puesto 1</button>
+  <button data-st="2">Puesto 2</button>
+</div>
+<div id="banner"></div>
+<div class="err" id="err"></div>
+<div id="levels"></div>
+
+<div class="card ref" id="ref"></div>
+
+<div class="card">
+  <details id="det">
+    <summary>Médicos presentes y punto de partida</summary>
+    <div class="mute" style="margin-top:6px">Toca un médico para marcarlo ausente (se salta). El número es lo asignado hoy.</div>
+    <div id="docs"></div>
+  </details>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;margin-bottom:6px">
+    <b>Historial</b>
+    <span class="row"><button class="ghost" id="undo">↩ Deshacer última</button><button class="ghost" id="reset">Reiniciar día</button></span>
+  </div>
+  <ul class="log" id="log"></ul>
+</div>
+</div>
+
+<script>
+// Motor de turnos del triaje. Funciones puras: reciben un estado y devuelven otro.
+const DOCS = {
+  critico: ['CR1', 'CR2'],
+  amarillo: ['A100', 'A200', 'A300', 'A400'],
+  verde: ['V1', 'V2', 'V3'],
+};
+const CYCLE = 5; // con refuerzo: de cada 5 amarillos, 1 va a un médico de críticos
+
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function newState() {
+  const present = {};
+  Object.values(DOCS).flat().forEach(d => (present[d] = true));
+  return {
+    ptr: { critico: 0, amarillo: 0, verde: 0 }, // índice del médico al que le toca
+    present,
+    refuerzo: { active: false, pos: 0, crPtr: 0 }, // pos 0 = este amarillo va a un CR
+    seq: 0,
+    log: [],
+  };
+}
+
+function nextPresent(s, list, from) {
+  for (let i = 0; i < list.length; i++) {
+    const idx = (from + i) % list.length;
+    if (s.present[list[idx]]) return idx;
+  }
+  return -1;
+}
+
+// Asigna un paciente del nivel dado. Devuelve {state, entry} o {state, error}.
+function assign(state, level, station, ts) {
+  const s = clone(state);
+  const docs = DOCS[level];
+  const before = { ptr: clone(s.ptr), refuerzo: clone(s.refuerzo) };
+  const owner = nextPresent(s, docs, s.ptr[level]);
+  if (owner < 0) return { state, error: 'No hay médicos disponibles en este nivel' };
+
+  let doctor = docs[owner];
+  let slotOf = null;
+  if (level === 'amarillo' && s.refuerzo.active) {
+    if (s.refuerzo.pos === 0) {
+      const cr = nextPresent(s, DOCS.critico, s.refuerzo.crPtr);
+      if (cr >= 0) {
+        slotOf = doctor; // el A al que le tocaba pierde ese turno
+        doctor = DOCS.critico[cr];
+        s.refuerzo.crPtr = (cr + 1) % DOCS.critico.length;
+      }
+    }
+    s.refuerzo.pos = (s.refuerzo.pos + 1) % CYCLE;
+  }
+  s.ptr[level] = (owner + 1) % docs.length;
+  s.seq += 1;
+  const entry = { id: s.seq, ts: ts || Date.now(), station, level, doctor, slotOf, before };
+  s.log.push(entry);
+  return { state: s, entry };
+}
+
+// Quién recibirá los próximos n pacientes (sin modificar el estado real).
+function upcoming(state, level, n) {
+  const out = [];
+  let s = state;
+  for (let i = 0; i < n; i++) {
+    const r = assign(s, level, 0, 0);
+    if (r.error) break;
+    out.push(r.entry);
+    s = r.state;
+  }
+  return out;
+}
+
+// Deshace la última asignación (rebobina punteros y refuerzo exactamente).
+function undoLast(state) {
+  if (!state.log.length) return { state, error: 'Nada que deshacer' };
+  const s = clone(state);
+  const e = s.log.pop();
+  s.ptr = e.before.ptr;
+  s.refuerzo = e.before.refuerzo;
+  s.seq = e.id - 1;
+  return { state: s, entry: e };
+}
+
+function setPresent(state, doctor, value) {
+  const s = clone(state);
+  s.present[doctor] = value;
+  return s;
+}
+
+// Elige con qué médico empieza la rueda de un nivel.
+function setStart(state, level, doctor) {
+  const s = clone(state);
+  s.ptr[level] = DOCS[level].indexOf(doctor);
+  return s;
+}
+
+// Activa el refuerzo: el siguiente amarillo va ya a un CR (firstCR) y luego cada 5.º.
+function startRefuerzo(state, firstCR) {
+  const s = clone(state);
+  s.refuerzo = { active: true, pos: 0, crPtr: Math.max(0, DOCS.critico.indexOf(firstCR)) };
+  return s;
+}
+function stopRefuerzo(state) {
+  const s = clone(state);
+  s.refuerzo.active = false;
+  s.refuerzo.pos = 0;
+  return s;
+}
+
+function counts(state) {
+  const c = {};
+  Object.values(DOCS).flat().forEach(d => (c[d] = 0));
+  state.log.forEach(e => (c[e.doctor] += 1));
+  return c;
+}
+
+const api = { DOCS, CYCLE, newState, assign, upcoming, undoLast, setPresent, setStart, startRefuerzo, stopRefuerzo, counts };
+if (typeof module !== 'undefined') module.exports = api;
+
+const E=api;
+
+const SB_URL='https://izmtpbdmtzhjpwxzgicr.supabase.co';
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bXRwYmRtdHpoanB3eHpnaWNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTA2NDgsImV4cCI6MjEwMDM4NjY0OH0.eSEnVSn9yKI-q6Juoi-ot-8PuVpY0zuivBi2D7zqq4Q";
+const LV = {
+  critico:{label:'Críticos · naranja/rojo',c:'var(--cr)',short:'CR'},
+  amarillo:{label:'Intermedios · amarillo',c:'var(--am)',short:'AM'},
+  verde:{label:'Verdes · azul · blanco',c:'var(--ve)',short:'V'},
+};
+const $=id=>document.getElementById(id);
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+let S=null, version=-1, code=ls.get('triaje-code')||'', station=+(ls.get('triaje-station')||1), busy=false, banner=null, online=false;
+const hhmm=ts=>new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+function flash(m){$('err').textContent=m||'';if(m)setTimeout(()=>{if($('err').textContent===m)$('err').textContent=''},4000)}
+function setOnline(v){online=v;const e=$('st');e.className='st'+(v?'':' off');e.lastChild.textContent=v?'conectado':'sin conexión'}
+
+async function rpc(name,body){
+  const r=await fetch(SB_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify(body)});
+  const txt=await r.text();
+  if(!r.ok){const e=new Error(txt);e.bad=/codigo_invalido/.test(txt);throw e}
+  return JSON.parse(txt);
+}
+function showLogin(msg){ $('app').hidden=true; $('login').hidden=false; $('loginerr').textContent=msg||'' }
+function applyRemote(res){ if(res.version!==version){S=res.estado;version=res.version;$('login').hidden=true;$('app').hidden=false;render()} }
+
+async function poll(){
+  if(!code) return;
+  try{ applyRemote(await rpc('triaje_get',{p_code:code})); setOnline(true) }
+  catch(e){ if(e.bad){ls.del('triaje-code');code='';showLogin('Código incorrecto')} else setOnline(false) }
+}
+
+// Cambia el estado de forma atómica: si otro puesto se adelantó, relee y recalcula.
+async function mutate(fn){
+  if(busy||!S) return null;
+  busy=true; render();
+  try{
+    for(let i=0;i<6;i++){
+      const r=fn(S);
+      if(r.error){flash(r.error);return null}
+      if(r.state.log.length>400) r.state.log=r.state.log.slice(-400);
+      const res=await rpc('triaje_apply',{p_code:code,p_expected:version,p_estado:r.state});
+      if(res.ok){S=r.state;version=res.version;setOnline(true);return r}
+      S=res.estado;version=res.version; // conflicto: otro puesto guardó antes; se reintenta con el estado fresco
+    }
+    flash('No se pudo guardar. Inténtalo de nuevo.');
+  }catch(e){ if(e.bad){ls.del('triaje-code');code='';showLogin('Código incorrecto')} else {setOnline(false);flash('Sin conexión: no se guardó')} }
+  finally{busy=false;render()}
+  return null;
+}
+
+async function doAssign(level,shown){
+  const r=await mutate(s=>E.assign(s,level,station));
+  if(!r) return;
+  const d=r.entry.doctor, extra=r.entry.slotOf?` (refuerzo, le tocaba a ${r.entry.slotOf})`:'';
+  banner = shown && shown!==d
+    ? {warn:true,html:`⚠ Otro puesto se adelantó. Este paciente va a<big>${d}${extra}</big>`}
+    : {warn:false,html:`Asignado a<big>${d}${extra}</big>`};
+  render();
+}
+
+function render(){
+  if(!S) return;
+  document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',+b.dataset.st===station));
+  $('banner').innerHTML=banner?`<div class="banner ${banner.warn?'warn':''}">${banner.html}</div>`:'';
+  $('levels').innerHTML=Object.keys(LV).map(l=>{
+    const up=E.upcoming(S,l,4), n=up[0];
+    const extra=n&&n.slotOf?`<span class="tag" style="--c:var(--cr)">refuerzo · le tocaba a ${n.slotOf}</span>`:'';
+    return `<div class="card lv" style="--c:${LV[l].c}">
+      <h2>${LV[l].label}</h2>
+      <div class="next">${n?n.doctor:'—'}${extra}</div>
+      <div class="queue">Después: ${up.slice(1).map(u=>u.doctor).join(' → ')||'—'}</div>
+      <button class="btn" data-l="${l}" data-shown="${n?n.doctor:''}" ${busy||!n?'disabled':''}>Asignar paciente (Puesto ${station})</button>
+    </div>`}).join('');
+  document.querySelectorAll('.btn[data-l]').forEach(b=>b.onclick=()=>doAssign(b.dataset.l,b.dataset.shown));
+
+  const R=S.refuerzo, left=(E.CYCLE-R.pos)%E.CYCLE;
+  const ref=$('ref'); ref.classList.toggle('active',R.active);
+  ref.innerHTML=R.active
+   ?`<b>Refuerzo ACTIVO</b><div class="mute" style="margin:4px 0 10px">Cada ${E.CYCLE}.º amarillo va a críticos, alternando. Próximo a críticos: ${left===0?'el siguiente amarillo':'en '+left+' amarillos'} (${E.DOCS.critico[R.crPtr]}).</div><button class="ghost" id="rstop">Detener refuerzo</button>`
+   :`<b>Refuerzo de críticos a amarillos</b><div class="mute" style="margin:4px 0 10px">Desactivado. Al activarlo, el siguiente amarillo va al médico de críticos elegido.</div><div class="row"><select id="rfirst">${E.DOCS.critico.map(d=>`<option>${d}</option>`).join('')}</select><button class="ghost" id="rstart">Activar refuerzo</button></div>`;
+  if($('rstop'))$('rstop').onclick=()=>mutate(s=>({state:E.stopRefuerzo(s)}));
+  if($('rstart'))$('rstart').onclick=()=>{const f=$('rfirst').value;mutate(s=>({state:E.startRefuerzo(s,f)}))};
+
+  const cnt=E.counts(S);
+  $('docs').innerHTML=Object.keys(LV).map(l=>`
+    <div style="margin-top:10px"><span class="mute">${LV[l].label}</span>
+    <div class="chips">${E.DOCS[l].map(d=>`<button class="chip ${S.present[d]?'':'off'}" data-d="${d}">${d}<small>${cnt[d]}</small></button>`).join('')}</div>
+    <div class="row"><span class="mute">Empieza en:</span><select data-start="${l}">${E.DOCS[l].map(d=>`<option ${E.DOCS[l][S.ptr[l]]===d?'selected':''}>${d}</option>`).join('')}</select></div></div>`).join('');
+  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const d=c.dataset.d;mutate(s=>({state:E.setPresent(s,d,!s.present[d])}))});
+  document.querySelectorAll('[data-start]').forEach(sel=>sel.onchange=()=>{const l=sel.dataset.start,v=sel.value;mutate(s=>({state:E.setStart(s,l,v)}))});
+
+  $('log').innerHTML=S.log.slice().reverse().slice(0,14).map(e=>`<li><span><b>${e.doctor}</b> <span class="mute">${LV[e.level].short}${e.slotOf?' · refuerzo (era de '+e.slotOf+')':''}</span></span><span class="mute">P${e.station} · ${hhmm(e.ts)}</span></li>`).join('')||'<li class="mute">Sin asignaciones todavía</li>';
+}
+
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{station=+b.dataset.st;ls.set('triaje-station',station);banner=null;render()});
+$('undo').onclick=()=>{banner=null;mutate(s=>E.undoLast(s))};
+let rt=null;
+$('reset').onclick=()=>{
+  const b=$('reset');
+  if(rt){clearTimeout(rt);rt=null;b.textContent='Reiniciar día';banner=null;mutate(s=>({state:E.newState()}));return}
+  b.textContent='¿Seguro? Toca otra vez';rt=setTimeout(()=>{rt=null;b.textContent='Reiniciar día'},3500);
+};
+$('enter').onclick=async()=>{
+  const c=$('code').value.trim(); if(!c) return;
+  try{ const res=await rpc('triaje_get',{p_code:c}); code=c; ls.set('triaje-code',c); setOnline(true); applyRemote(res) }
+  catch(e){ $('loginerr').textContent=e.bad?'Código incorrecto':'Sin conexión' }
+};
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click()});
+
+if(code){ poll() } else { showLogin(''); setOnline(true) }
+setInterval(poll,1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
+</script>
+</body>
+</html>
