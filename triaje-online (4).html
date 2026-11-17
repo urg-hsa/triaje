@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triaje · Rueda de asignación</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#14213d;--mute:#667085;--line:#e1e5ec;--accent:#1f4fd8;
+--cr:#d62839;--am:#d99a00;--ve:#2a9d5c;--bad:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131d;--card:#171e2e;--ink:#eef1f7;--mute:#97a1b8;--line:#27304a;--accent:#6c8cff;--am:#e9a800}}
+*{box-sizing:border-box}
+body{margin:0 auto;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:12px;max-width:760px}
+h1{font-size:18px;margin:0}
+.sub{color:var(--mute);font-size:13px}
+.top{margin-bottom:12px}
+.brand{margin-bottom:10px}
+.meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;color:var(--mute)}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+.st i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ve);margin-right:5px}
+.st.off{color:var(--bad);font-weight:700}.st.off i{background:var(--bad)}
+.seg{display:flex;background:var(--line);border-radius:12px;padding:3px}
+.seg button{flex:1;border:0;background:none;color:var(--mute);padding:10px 14px;border-radius:9px;font:600 15px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px #0002}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.lv{border-top:8px solid var(--c);display:flex;flex-direction:column}
+.lv h2{margin:0;font-size:13px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.next{font-size:48px;font-weight:800;line-height:1.05;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--cr);color:#fff;margin-bottom:6px}
+.queue{color:var(--mute);font-size:14px;margin-bottom:10px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pill{border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.pill small{color:var(--mute);font-weight:500;margin-left:5px}
+.pill.is-next{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.pill.off{opacity:.45;text-decoration:line-through}
+.btn{width:100%;border:0;border-radius:12px;padding:16px;font:700 17px inherit;font-family:inherit;background:var(--c);color:#fff;cursor:pointer;margin-top:auto}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.45;cursor:default}
+.filt{margin:4px 0 0}
+.fchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.fchip{border:1px solid var(--line);border-radius:99px;padding:6px 11px;font:600 13px inherit;font-family:inherit;background:var(--card);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center}
+.fchip small{color:var(--mute);font-weight:700;margin-left:6px;font-variant-numeric:tabular-nums}
+.fchip.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.fchip.on small{color:inherit;opacity:.8}
+.fchip.zero{opacity:.45}
+.fchip .dot{margin-right:6px}
+body.train{--bg:#efe9fb}
+@media(prefers-color-scheme:dark){body.train{--bg:#1a1330}}
+#trainbar{background:#6b3fc4;color:#fff;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:14px}
+#trainbar .ghost{background:#ffffff26;color:#fff;border-color:#ffffff66}
+.stcol{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.outbtn{background:none;border:0;color:var(--accent);font:600 12px inherit;font-family:inherit;padding:2px 0;cursor:pointer;text-decoration:underline}
+.outbtn.arm{color:var(--bad)}
+.avbox{border-top:1px dashed var(--line);padding-top:10px;margin-bottom:12px}
+.btn-av{margin-top:0;padding:12px;font-size:15px;background:var(--am);color:#1a1300}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 12px;font:600 14px inherit;font-family:inherit;cursor:pointer}
+.ghost.arm{border-color:var(--bad);color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{border:1px solid var(--line);border-radius:10px;padding:8px 11px;font:600 14px inherit;font-family:inherit;background:var(--card);color:var(--ink);cursor:pointer}
+.chip.off{opacity:.45;text-decoration:line-through}
+.chip small{color:var(--mute);font-weight:500;margin-left:4px}
+select,input.code{font:inherit;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+input.code{width:100%;margin:10px 0;padding:12px}
+.ref{border-left:6px solid var(--line)}
+.ref.active{border-left-color:var(--cr);background:color-mix(in srgb,var(--cr) 8%,var(--card))}
+.log{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto}
+.log li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.log li:first-child{border-top:0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:8px}
+.dot.av{background:linear-gradient(90deg,var(--am) 50%,var(--ve) 50%)}
+.mute{color:var(--mute);font-size:13px}
+.err{color:var(--bad);font-weight:600;font-size:14px}
+.err:empty{display:none}.err{margin-bottom:10px}
+.banner{border-radius:14px;padding:12px 16px;margin-bottom:12px;font-weight:700;background:color-mix(in srgb,var(--ve) 15%,var(--card));border:1px solid var(--ve)}
+.banner.warn{background:color-mix(in srgb,var(--am) 22%,var(--card));border-color:var(--am)}
+.banner.bad{background:color-mix(in srgb,var(--bad) 14%,var(--card));border-color:var(--bad)}
+.banner big{display:block;font-size:28px;line-height:1.15}
+details summary{cursor:pointer;font-weight:700}
+[hidden]{display:none!important}
+
+/* Panel: tablet apaisada y ordenador */
+@media(min-width:900px){
+  body{max-width:1500px;padding:18px 22px}
+  .top{display:flex;align-items:center;gap:20px;margin-bottom:16px}
+  .brand{margin:0;flex:1}
+  h1{font-size:22px}
+  .seg{width:300px}
+  .meta{margin:0;gap:18px;font-size:14px}
+  .clock{font-size:26px}
+  #levels{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+  #levels .card{margin:0;padding:20px}
+  .lv h2{font-size:14px}
+  .next{font-size:clamp(64px,7.5vw,112px);margin:10px 0 6px}
+  .queue{font-size:17px}
+  .pill{font-size:15px;padding:5px 10px}
+  .btn{padding:22px;font-size:21px}
+  .btn-av{padding:14px;font-size:17px}
+  .lower{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .banner{font-size:18px}.banner big{font-size:40px}
+}
+</style>
+</head>
+<body>
+<div id="trainbar" hidden>
+  <b>MODO ENTRENAMIENTO</b> · datos de ejemplo: nada de lo que toques aquí afecta al sistema real. Cada persona trabaja en su propio dispositivo; alterna Puesto 1 y Puesto 2 para practicar las dos mesas.
+  <div class="row" style="margin-top:8px"><button class="ghost" id="trainex">Cargar ejemplo</button><button class="ghost" id="trainzero">Empezar de cero</button></div>
+</div>
+<header class="top">
+  <div class="brand"><h1>Triaje · Rueda de asignación</h1><div class="sub" id="sub"></div></div>
+  <div class="seg" id="seg">
+    <button data-st="1">Puesto 1</button>
+    <button data-st="2">Puesto 2</button>
+  </div>
+  <div class="meta"><span class="clock" id="clock"></span><span class="stcol"><span class="st" id="st"><i></i><span>conectando…</span></span><button class="outbtn" id="logout" hidden>Salir de la sala</button></span></div>
+</header>
+
+<div id="login" class="card" hidden>
+  <b>Código de acceso</b>
+  <div class="mute">Pídelo al responsable. Se guarda en este dispositivo.</div>
+  <input class="code" id="code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Código">
+  <button class="btn" id="enter" style="--c:var(--accent)">Entrar</button>
+  <div class="err" id="loginerr" style="margin-top:8px"></div>
+</div>
+
+<div id="app" hidden>
+  <div id="offline" class="banner bad" hidden>SIN CONEXIÓN. Lo que ves puede estar desfasado: asigna a mano hasta que vuelva. Lo ya asignado está guardado.</div>
+  <div id="restnote" class="banner warn" hidden></div>
+  <div id="banner"></div>
+  <div class="err" id="err"></div>
+  <div id="levels"></div>
+  <div class="lower">
+    <div>
+      <div class="card ref" id="ref"></div>
+      <div class="card">
+        <details id="det">
+          <summary>Médicos presentes y punto de partida</summary>
+          <div class="mute" style="margin-top:6px">Toca un médico para marcarlo ausente (se salta). El número es lo asignado desde el último reinicio.</div>
+          <div id="docs"></div>
+        </details>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <b>Historial</b>
+        <span class="row"><label class="mute" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="festivo"> Hoy es festivo</label><button class="ghost" id="undo">↩ Deshacer última</button><button class="ghost" id="reset">Reiniciar día</button></span>
+      </div>
+      <details id="filtdet" class="filt"><summary>Filtros<span class="mute" id="filtbadge" style="margin-left:8px"></span></summary><div id="filt" style="margin-top:8px"></div></details>
+      <div class="row" style="justify-content:space-between;margin:8px 0 2px"><span class="mute" id="filtcount"></span><button class="ghost" id="logmore" hidden style="padding:5px 10px;font-size:13px"></button></div>
+      <ul class="log" id="log"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// Motor de turnos del triaje. Funciones puras: reciben un estado y devuelven otro.
+const DOCS = {
+  critico: ['CR1', 'CR2'],
+  amarillo: ['A100', 'A200', 'A300', 'A400'],
+  verde: ['V1', 'V2', 'V3'],
+};
+const CYCLE = 5; // con refuerzo: de cada 5 amarillos, 1 va a un médico de críticos
+
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function zeros() { const c = {}; Object.values(DOCS).flat().forEach(d => (c[d] = 0)); return c; }
+function ep0() { return { critico: 0, amarillo: 0, verde: 0, ref: 0 }; }
+
+// opts.absent: médicos que empiezan el día ausentes (p. ej. A100 en fin de semana o festivo).
+function newState(opts) {
+  const present = {};
+  Object.values(DOCS).flat().forEach(d => (present[d] = true));
+  ((opts && opts.absent) || []).forEach(d => { if (d in present) present[d] = false; });
+  return {
+    ptr: { critico: 0, amarillo: 0, verde: 0 }, // índice del médico al que le toca
+    present,
+    refuerzo: { active: false, pos: 0, crPtr: 0 }, // pos 0 = este amarillo va a un CR
+    ep: ep0(),        // "épocas": suben cuando alguien cambia el inicio de una rueda o el refuerzo
+    counts: zeros(),  // pacientes asignados a cada médico desde el último reinicio
+    seq: 0,
+    log: [],
+  };
+}
+
+// Completa campos que falten en estados guardados por versiones anteriores.
+function norm(s) {
+  if (!s.ep) s.ep = ep0();
+  if (!s.counts) { const c = zeros(); (s.log || []).forEach(e => { if (e.doctor in c) c[e.doctor] += 1; }); s.counts = c; }
+  if (!s.log) s.log = [];
+  return s;
+}
+
+// Amarillos de la zona de Vs: solo V2 y V3. Si V2 falta, la zona entera (verdes y amarillos) va entre los presentes.
+function avEligible(s) {
+  return s.present['V2'] ? ['V2', 'V3'].filter(d => s.present[d]) : DOCS.verde.filter(d => s.present[d]);
+}
+function nextAV(s) {
+  const docs = DOCS.verde, ok = avEligible(s);
+  for (let i = 0; i < docs.length; i++) {
+    const idx = (s.ptr.verde + i) % docs.length;
+    if (ok.includes(docs[idx])) return idx;
+  }
+  return -1;
+}
+
+function nextPresent(s, list, from) {
+  for (let i = 0; i < list.length; i++) {
+    const idx = (from + i) % list.length;
+    if (s.present[list[idx]]) return idx;
+  }
+  return -1;
+}
+
+// Asigna un paciente del nivel dado. Devuelve {state, entry} o {state, error}.
+// op: identificador único de la pulsación, para saber después si llegó a guardarse.
+function assign(state, level, station, ts, op) {
+  const isAV = level === 'amarilloV';       // amarillo que se atiende en la zona de Vs
+  const wheel = isAV ? 'verde' : level;     // rueda que consume
+  const docs = DOCS[wheel];
+  if (!docs) return { state, error: 'Nivel desconocido' };
+  const s = norm(clone(state));
+  const before = { ptr: clone(s.ptr), refuerzo: clone(s.refuerzo) };
+  const owner = isAV ? nextAV(s) : nextPresent(s, docs, s.ptr[wheel]);
+  if (owner < 0) return { state, error: isAV ? 'No hay médico de la zona V disponible para un amarillo' : 'No hay médicos disponibles en este nivel' };
+
+  let doctor = docs[owner];
+  let slotOf = null;
+  if (level === 'amarillo' && s.refuerzo.active) {
+    if (s.refuerzo.pos === 0) {
+      const cr = nextPresent(s, DOCS.critico, s.refuerzo.crPtr);
+      if (cr >= 0) {
+        slotOf = doctor; // el A al que le tocaba pierde ese turno
+        doctor = DOCS.critico[cr];
+        s.refuerzo.crPtr = (cr + 1) % DOCS.critico.length;
+      }
+    }
+    s.refuerzo.pos = (s.refuerzo.pos + 1) % CYCLE;
+  }
+  s.ptr[wheel] = (owner + 1) % docs.length;
+  s.seq += 1;
+  s.counts[doctor] = (s.counts[doctor] || 0) + 1;
+  const entry = { id: s.seq, ts: ts || Date.now(), station, level, wheel, doctor, slotOf, op: op || null, ep: clone(s.ep), before };
+  s.log.push(entry);
+  return { state: s, entry };
+}
+
+// Quién recibirá los próximos n pacientes (sin modificar el estado real).
+function upcoming(state, level, n) {
+  const out = [];
+  let s = Object.assign({}, state, { log: [], counts: zeros() });
+  for (let i = 0; i < n; i++) {
+    const r = assign(s, level, 0, 1);
+    if (r.error) break;
+    out.push(r.entry);
+    s = r.state;
+    s.log = [];
+  }
+  return out;
+}
+
+// Deshace la última asignación. Rebobina la rueda de ese nivel, salvo que después
+// alguien haya cambiado su punto de inicio o el refuerzo: entonces esos ajustes se respetan.
+function undoLast(state) {
+  if (!state.log || !state.log.length) return { state, error: 'Nada que deshacer' };
+  const s = norm(clone(state));
+  const e = s.log.pop();
+  const eep = e.ep || ep0();
+  let full = true;
+  const w = e.wheel || e.level;
+  if (eep[w] === s.ep[w]) s.ptr[w] = e.before.ptr[w]; else full = false;
+  if (e.level === 'amarillo') {
+    if (eep.ref === s.ep.ref) s.refuerzo = e.before.refuerzo; else full = false;
+  }
+  s.counts[e.doctor] = Math.max(0, (s.counts[e.doctor] || 0) - 1);
+  s.seq = e.id - 1;
+  return { state: s, entry: e, full };
+}
+
+function setPresent(state, doctor, value) {
+  const s = norm(clone(state));
+  if (doctor in s.present) s.present[doctor] = !!value;
+  return s;
+}
+
+// Elige con qué médico empieza (o sigue) la rueda de un nivel.
+function setStart(state, level, doctor) {
+  const s = norm(clone(state));
+  const i = DOCS[level].indexOf(doctor);
+  if (i >= 0) { s.ptr[level] = i; s.ep[level] += 1; }
+  return s;
+}
+
+// Activa el refuerzo: el siguiente amarillo va ya a un CR (firstCR) y luego cada 5.º.
+function startRefuerzo(state, firstCR) {
+  const s = norm(clone(state));
+  s.refuerzo = { active: true, pos: 0, crPtr: Math.max(0, DOCS.critico.indexOf(firstCR)) };
+  s.ep.ref += 1;
+  return s;
+}
+function stopRefuerzo(state) {
+  const s = norm(clone(state));
+  s.refuerzo.active = false;
+  s.refuerzo.pos = 0;
+  s.ep.ref += 1;
+  return s;
+}
+
+function counts(state) {
+  const c = zeros();
+  if (state.counts) Object.keys(c).forEach(d => (c[d] = state.counts[d] || 0));
+  else (state.log || []).forEach(e => { if (e.doctor in c) c[e.doctor] += 1; });
+  return c;
+}
+
+const api = { DOCS, CYCLE, newState, norm, assign, upcoming, undoLast, setPresent, setStart, startRefuerzo, stopRefuerzo, counts };
+if (typeof module !== 'undefined') module.exports = api;
+
+const E=api;
+
+const DEMO=false, TRAIN=false;
+const SB_URL='https://izmtpbdmtzhjpwxzgicr.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bXRwYmRtdHpoanB3eHpnaWNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTA2NDgsImV4cCI6MjEwMDM4NjY0OH0.eSEnVSn9yKI-q6Juoi-ot-8PuVpY0zuivBi2D7zqq4Q';
+async function rpc(name,body){
+  const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),8000);
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/rpc/'+name,{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify(body)});
+    const txt=await r.text();
+    if(!r.ok){const e=new Error(txt);e.bad=/codigo_invalido/.test(txt);throw e}
+    return JSON.parse(txt);
+  }finally{clearTimeout(t)}
+}
+
+const LV = {
+  critico:{label:'Críticos · naranja/rojo',c:'var(--cr)',short:'Crítico'},
+  amarillo:{label:'Intermedios · amarillo',c:'var(--am)',short:'Amarillo'},
+  verde:{label:'Verdes · azul · blanco',c:'var(--ve)',short:'Verde'},
+};
+const LX=Object.assign({},LV,{amarilloV:{label:'Amarillo · zona V',c:'var(--am)',short:'Amarillo·V'}});
+const LOGMAX=400;
+const CATS=['critico','amarillo','amarilloV','verde'];
+let fCat=null,fDoc=null,showAll=false;
+// Fin de semana (por la fecha del dispositivo) o festivo marcado a mano: A100 no trabaja.
+const isRest=()=>{const d=new Date().getDay();return d===0||d===6||($('festivo')&&$('festivo').checked)};
+const $=id=>document.getElementById(id);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const SKEY=TRAIN?'triaje-ent-station':'triaje-station';
+let S=null, version=-1, code=DEMO?'demo':(ls.get('triaje-code')||''), station=(+ls.get(SKEY)===2?2:1);
+let busy=false, cool=false, banner=null, online=true, lastSync=0, pending=null, polling=false, lower=0;
+const hhmm=ts=>new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+function flash(m){$('err').textContent=m||'';if(m)setTimeout(()=>{if($('err').textContent===m)$('err').textContent=''},6000)}
+function setOnline(v){
+  const e=$('st');e.className='st'+(v?'':' off');e.lastChild.textContent=v?(TRAIN?'entrenamiento':'conectado'):'sin conexión';
+  $('offline').hidden=v;
+  if(online!==v){online=v;render()}
+}
+function synced(){lastSync=Date.now();setOnline(true)}
+function showLogin(msg){$('logout').hidden=true;$('app').hidden=true;$('login').hidden=false;$('loginerr').textContent=msg||''}
+function logout(msg){ls.del('triaje-code');code='';S=null;version=-1;showLogin(msg)}
+
+// Solo se acepta un estado más nuevo que el que ya tenemos (evita que una respuesta atrasada nos haga retroceder).
+function applyRemote(res){
+  if(S===null||res.version>version){lower=0}
+  else if(res.version<version&&++lower>=3){lower=0}
+  else return;
+  S=E.norm(res.estado);version=res.version;$('login').hidden=true;$('app').hidden=false;$('logout').hidden=TRAIN;render();
+}
+function checkPending(){
+  if(!pending||!S) return;
+  const hit=S.log.find(e=>e.op===pending.op);
+  banner=hit
+    ?{cls:'',html:`Conexión recuperada. La asignación que quedó en duda SÍ se guardó:<big>${esc(hit.doctor)}</big>`}
+    :{cls:'warn',html:`Conexión recuperada. La última asignación (${esc((LX[pending.level]||{}).short)}) NO llegó a guardarse: vuelve a asignarla.`};
+  pending=null;render();
+}
+async function poll(){
+  if(!code||polling) return;
+  polling=true;
+  try{const res=await rpc('triaje_get',{p_code:code});synced();applyRemote(res);checkPending()}
+  catch(e){if(e.bad)logout('Código incorrecto');else if(Date.now()-lastSync>5000)setOnline(false)}
+  finally{polling=false}
+}
+
+// Cambia el estado de forma atómica: si otro puesto se adelantó, relee y recalcula.
+async function mutate(fn,ev,track){
+  if(busy||!S) return null;
+  busy=true;render();
+  let last=null;
+  try{
+    for(let i=0;i<6;i++){
+      const r=fn(S);
+      if(r.error){flash(r.error);return null}
+      last=r;
+      if(r.state.log.length>LOGMAX) r.state.log=r.state.log.slice(-LOGMAX);
+      const res=await rpc('triaje_apply',{p_code:code,p_expected:version,p_estado:r.state,p_evento:ev?ev(r):null});
+      synced();
+      if(res.ok){S=r.state;version=res.version;return r}
+      S=E.norm(res.estado);version=res.version; // otro puesto guardó antes: se recalcula con el estado fresco
+    }
+    flash('No se pudo guardar. Inténtalo de nuevo.');
+  }catch(e){
+    if(e.bad){logout('Código incorrecto')}
+    else{
+      setOnline(false);
+      if(track&&last&&last.entry){pending={op:last.entry.op,level:last.entry.level};flash('Se cortó la conexión mientras se guardaba. Al volver te diré si esta asignación llegó a guardarse.')}
+      else flash('Sin conexión: el cambio no se guardó.');
+    }
+  }finally{busy=false;render()}
+  return null;
+}
+
+async function doAssign(level,shown){
+  const op=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const st=station;
+  const r=await mutate(s=>E.assign(s,level,st,Date.now(),op),
+    r=>({tipo:'asignar',nivel:level,medico:r.entry.doctor,era_de:r.entry.slotOf,puesto:st,op}),true);
+  if(!r) return;
+  const d=esc(r.entry.doctor), extra=r.entry.slotOf?` <span class="mute">(refuerzo; le tocaba a ${esc(r.entry.slotOf)})</span>`:'';
+  banner=shown&&shown!==r.entry.doctor
+    ?{cls:'warn',html:`⚠ El otro puesto se adelantó. Este paciente va a<big>${d}</big>${extra}`}
+    :{cls:'',html:`${esc(LX[level].short)} asignado a<big>${d}</big>${extra}`};
+  cool=true;setTimeout(()=>{cool=false;render()},900);
+  render();
+}
+
+// Botón que pide un segundo toque para confirmar
+function confirmTap(btn,label,fn){
+  let t=null;
+  btn.onclick=()=>{
+    if(t){clearTimeout(t);t=null;btn.classList.remove('arm');fn();return}
+    btn.classList.add('arm');btn.textContent='¿Seguro? Toca otra vez';
+    t=setTimeout(()=>{t=null;btn.classList.remove('arm');btn.textContent=label()},3500);
+  };
+  btn._label=label;btn._armed=()=>!!t;
+}
+
+function render(){
+  if(!S) return;
+  document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',+b.dataset.st===station));
+  $('banner').innerHTML=banner?`<div class="banner ${banner.cls}">${banner.html}</div>`:'';
+  const cnt=E.counts(S);
+  const rn=$('restnote');
+  if(isRest()&&S.present.A100){
+    rn.hidden=false;
+    rn.innerHTML='Hoy es fin de semana o festivo y A100 figura como presente. <button class="ghost" id="a100off" style="margin-left:8px">Marcar A100 ausente</button>';
+    $('a100off').onclick=()=>mutate(s=>({state:E.setPresent(s,'A100',false)}),()=>({tipo:'presencia',medico:'A100',presente:false,puesto:station}));
+  } else rn.hidden=true;
+
+  $('levels').innerHTML=Object.keys(LV).map(l=>{
+    const up=E.upcoming(S,l,4), n=up[0];
+    const tag=n&&n.slotOf?`<div><span class="tag">refuerzo · le tocaba a ${esc(n.slotOf)}</span></div>`:'';
+    const ownerIdx=n&&!n.slotOf?E.DOCS[l].indexOf(n.doctor):-1;
+    const pills=E.DOCS[l].map((d,i)=>`<span class="pill ${i===ownerIdx?'is-next':''} ${S.present[d]?'':'off'}">${d}<small>${cnt[d]}</small></span>`).join('')
+      +(l==='amarillo'&&S.refuerzo.active?E.DOCS.critico.map(d=>`<span class="pill ${n&&n.slotOf&&n.doctor===d?'is-next':''} ${S.present[d]?'':'off'}" title="refuerzo">+${d}</span>`).join(''):'');
+    const av=l==='verde'?E.upcoming(S,'amarilloV',1)[0]:null;
+    const avBlock=l==='verde'?`<div class="avbox"><div class="queue" style="margin:0 0 8px">Amarillo de la zona V → <b>${av?esc(av.doctor):'—'}</b></div><button class="btn btn-av" data-l="amarilloV" data-shown="${av?esc(av.doctor):''}" ${busy||cool||!av||!online?'disabled':''}>Asignar amarillo · zona V (Puesto ${station})</button></div>`:'';
+    return `<div class="card lv" style="--c:${LV[l].c}">
+      <h2>${LV[l].label}</h2>
+      <div class="next">${n?esc(n.doctor):'—'}</div>${tag}
+      <div class="queue">Después: ${up.slice(1).map(u=>esc(u.doctor)).join(' → ')||'—'}</div>
+      <div class="pills">${pills}</div>
+      ${avBlock}
+      <button class="btn" data-l="${l}" data-shown="${n?esc(n.doctor):''}" ${busy||cool||!n||!online?'disabled':''}>Asignar · Puesto ${station}</button>
+    </div>`}).join('');
+  document.querySelectorAll('.btn[data-l]').forEach(b=>b.onclick=()=>doAssign(b.dataset.l,b.dataset.shown));
+
+  const R=S.refuerzo, left=(E.CYCLE-R.pos)%E.CYCLE;
+  const ref=$('ref');ref.classList.toggle('active',!!R.active);
+  ref.innerHTML=R.active
+   ?`<b>Refuerzo ACTIVO</b><div class="mute" style="margin:4px 0 10px">Cada ${E.CYCLE}.º amarillo va a críticos, alternando. Próximo a críticos: ${left===0?'el siguiente amarillo':(left===1?'dentro de 1 amarillo':'dentro de '+left+' amarillos')} (${esc(E.DOCS.critico[R.crPtr])}).</div><button class="ghost" id="rstop">Detener refuerzo</button>`
+   :`<b>Refuerzo de críticos a amarillos</b><div class="mute" style="margin:4px 0 10px">Desactivado. Al activarlo, el siguiente amarillo va al médico de críticos elegido y después uno de cada ${E.CYCLE}.</div><div class="row"><select id="rfirst">${E.DOCS.critico.map(d=>`<option>${d}</option>`).join('')}</select><button class="ghost" id="rstart">Activar refuerzo</button></div>`;
+  if($('rstop'))$('rstop').onclick=()=>mutate(s=>({state:E.stopRefuerzo(s)}),()=>({tipo:'refuerzo',activo:false,puesto:station}));
+  if($('rstart'))$('rstart').onclick=()=>{const f=$('rfirst').value;mutate(s=>({state:E.startRefuerzo(s,f)}),()=>({tipo:'refuerzo',activo:true,primero:f,puesto:station}))};
+
+  $('docs').innerHTML=Object.keys(LV).map(l=>`
+    <div style="margin-top:10px"><span class="mute">${LV[l].label}</span>
+    <div class="chips">${E.DOCS[l].map(d=>`<button class="chip ${S.present[d]?'':'off'}" data-d="${d}">${d}<small>${cnt[d]}</small></button>`).join('')}</div>
+    <div class="row"><span class="mute">El siguiente es:</span><select data-start="${l}">${E.DOCS[l].map((d,i)=>`<option ${S.ptr[l]===i?'selected':''}>${d}</option>`).join('')}</select></div></div>`).join('');
+  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const d=c.dataset.d;mutate(s=>({state:E.setPresent(s,d,!s.present[d])}),r=>({tipo:'presencia',medico:d,presente:r.state.present[d],puesto:station}))});
+  document.querySelectorAll('[data-start]').forEach(sel=>sel.onchange=()=>{const l=sel.dataset.start,v=sel.value;mutate(s=>({state:E.setStart(s,l,v)}),()=>({tipo:'inicio',nivel:l,medico:v,puesto:station}))});
+
+  const lastE=S.log[S.log.length-1];
+  const u=$('undo');u.disabled=!lastE;u.style.opacity=lastE?1:.45;
+  if(!u._armed||!u._armed()) u.textContent=u._label?u._label():'↩ Deshacer última';
+  // Filtros del historial: cada botón muestra cuántas asignaciones saldrían al elegirlo (teniendo en cuenta el otro filtro)
+  const all=S.log, okDoc=e=>!fDoc||e.doctor===fDoc, okCat=e=>!fCat||e.level===fCat;
+  const shown=all.filter(e=>okCat(e)&&okDoc(e));
+  const catN=c=>all.filter(e=>e.level===c&&okDoc(e)).length, docN=d=>all.filter(e=>e.doctor===d&&okCat(e)).length;
+  const active=!!(fCat||fDoc);
+  $('filt').innerHTML=`<div class="mute">Categoría de triaje</div><div class="fchips">${CATS.map(c=>`<button class="fchip ${fCat===c?'on':''} ${catN(c)?'':'zero'}" data-fc="${c}"><span class="dot${c==='amarilloV'?' av':''}" style="--c:${LX[c].c}"></span>${LX[c].short}<small>${catN(c)}</small></button>`).join('')}</div>
+    <div class="mute">Médico asignado</div><div class="fchips">${Object.values(E.DOCS).flat().map(d=>`<button class="fchip ${fDoc===d?'on':''} ${docN(d)?'':'zero'}" data-fd="${d}">${d}<small>${docN(d)}</small></button>`).join('')}</div>
+    ${active?'<button class="ghost" id="fclear" style="margin-bottom:6px">Quitar filtros</button>':''}`;
+  document.querySelectorAll('[data-fc]').forEach(b=>b.onclick=()=>{fCat=fCat===b.dataset.fc?null:b.dataset.fc;render()});
+  document.querySelectorAll('[data-fd]').forEach(b=>b.onclick=()=>{fDoc=fDoc===b.dataset.fd?null:b.dataset.fd;render()});
+  if($('fclear'))$('fclear').onclick=()=>{fCat=null;fDoc=null;render()};
+  $('filtbadge').textContent=active?'· activo: '+[fCat?LX[fCat].short:'',fDoc||''].filter(Boolean).join(' + '):'';
+  const cut=!showAll&&shown.length>30;
+  let ctxt;
+  if(!active) ctxt=cut?`Mostrando las últimas 30 de ${all.length} asignaciones`:(showAll&&all.length>30?`Mostrando las ${all.length} asignaciones del día`:`${all.length} asignaciones`);
+  else ctxt=cut?`Mostrando las últimas 30 de ${shown.length} coincidencias (${all.length} en total)`:`Mostrando ${shown.length} de ${all.length} asignaciones`;
+  if(all.length>=LOGMAX) ctxt+=` · la pantalla guarda como máximo ${LOGMAX}`;
+  $('filtcount').textContent=ctxt;
+  const mb=$('logmore');
+  mb.hidden=shown.length<=30;
+  mb.textContent=showAll?'Ver solo las últimas 30':(active?`Ver todas (${shown.length})`:`Ver todas las del día (${shown.length})`);
+  mb.onclick=()=>{showAll=!showAll;render()};
+  const rows=(showAll?shown:shown.slice(-30)).slice().reverse();
+  $('log').innerHTML=rows.map(e=>{const L=LX[e.level]||{c:'var(--line)',short:''};
+    return `<li><span><span class="dot${e.level==='amarilloV'?' av':''}" style="--c:${L.c}"></span><b>${esc(e.doctor)}</b> <span class="mute">${esc(L.short)}${e.slotOf?' · refuerzo (era de '+esc(e.slotOf)+')':''}</span></span><span class="mute">P${esc(e.station)} · ${hhmm(e.ts)}</span></li>`}).join('')||`<li class="mute">${active?'Ninguna asignación con estos filtros':'Sin asignaciones todavía'}</li>`;
+}
+
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{station=+b.dataset.st;ls.set(SKEY,station);banner=null;render()});
+confirmTap($('undo'),()=>{const e=S&&S.log[S.log.length-1];return e?`↩ Deshacer: ${e.doctor} (P${e.station}, ${hhmm(e.ts)})`:'↩ Deshacer última'},async()=>{
+  const st=station;
+  const r=await mutate(s=>E.undoLast(s),r=>({tipo:'deshacer',nivel:r.entry.level,medico:r.entry.doctor,puesto:st,op:r.entry.op}));
+  if(r){banner={cls:'warn',html:`Deshecha la asignación a ${esc(r.entry.doctor)}.`+(r.full?' Vuelve a tocarle el turno.':' La rueda no se ha movido porque se cambió su configuración después: revisa a quién le toca.')};render()}
+});
+confirmTap($('reset'),()=>'Reiniciar día',async()=>{
+  banner=null;const rest=isRest();
+  const r=await mutate(()=>({state:E.newState(rest?{absent:['A100']}:{})}),()=>({tipo:'reinicio',puesto:station,descanso:rest}));
+  if(r){banner={cls:'',html:'Día reiniciado.'+(rest?' Fin de semana o festivo: A100 ausente.':'')};render()}
+});
+$('festivo').onchange=render;
+// Salir de la sala: borra el código de este dispositivo. No cambia nada del turno ni afecta al otro puesto.
+confirmTap($('logout'),()=>'Salir de la sala',()=>{
+  banner=null;fCat=null;fDoc=null;showAll=false;$('code').value='';
+  logout('');
+});
+$('enter').onclick=async()=>{
+  const c=$('code').value.trim();if(!c) return;
+  try{const res=await rpc('triaje_get',{p_code:c});code=c;ls.set('triaje-code',c);synced();applyRemote(res)}
+  catch(e){$('loginerr').textContent=e.bad?'Código incorrecto':'Sin conexión'}
+};
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter')$('enter').click()});
+
+$('sub').textContent=TRAIN?'Entrenamiento: practica sin afectar al sistema real.':'Los dos puestos comparten el mismo turno.';
+if(TRAIN){
+  document.body.classList.add('train');$('trainbar').hidden=false;
+  const tr=k=>async()=>{await trainReset(k);banner=null;await poll()};
+  $('trainex').onclick=tr('ejemplo');$('trainzero').onclick=tr('cero');
+}
+try{const wide=window.matchMedia('(min-width:900px)').matches;$('det').open=wide;$('filtdet').open=wide}catch(e){}
+function tick(){
+  $('clock').textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  if(code&&S&&Date.now()-lastSync>6000) setOnline(false);
+}
+tick();setInterval(tick,1000);
+if(code) poll(); else showLogin('');
+setInterval(poll,1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
+window.addEventListener('online',poll);
+</script>
+</body>
+</html>
